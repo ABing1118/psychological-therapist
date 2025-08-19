@@ -49,11 +49,11 @@ const MessageBubble = ({ message }) => {
     >
       <div className={`max-w-xs lg:max-w-md ${isUser ? 'order-1' : 'order-2'}`}>
         {!isUser && (
-          <div className="flex items-center space-x-2 mb-1 ml-1">
-            <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-              <Heart className="w-3 h-3 text-white" />
+          <div className="flex items-center space-x-2 mb-2 ml-1">
+            <div className="w-7 h-7 bg-gradient-to-r from-primary-500 to-warm-500 rounded-full flex items-center justify-center shadow-md">
+              <Heart className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-xs text-gray-500">心理健康助手</span>
+            <span className="text-xs text-gray-600 font-medium">心理健康助手</span>
           </div>
         )}
         

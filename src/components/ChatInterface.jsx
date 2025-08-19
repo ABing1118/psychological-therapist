@@ -78,7 +78,7 @@ const ChatInterface = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-warm-50">
+    <div className="h-screen flex flex-col chat-container">
       {/* 头部导航 */}
       <motion.header 
         className="glass-effect border-b border-white/20 px-4 py-3 flex items-center justify-between"
@@ -142,15 +142,15 @@ const ChatInterface = () => {
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="在这里输入你想说的话..."
-                  className="w-full p-3 pr-12 bg-white rounded-2xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none resize-none max-h-32"
+                  className="w-full p-4 pr-12 bg-white/95 backdrop-blur-sm rounded-2xl border border-warm-200/50 focus:border-primary-400 focus:ring-2 focus:ring-primary-400/30 outline-none resize-none max-h-32 shadow-lg smooth-transition"
                   rows="1"
                   disabled={isTyping}
-                  style={{ minHeight: '48px' }}
+                  style={{ minHeight: '52px' }}
                 />
                 <motion.button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isTyping}
-                  className="absolute right-2 bottom-2 p-2 bg-primary-500 hover:bg-primary-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="absolute right-3 bottom-3 p-2.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed smooth-transition shadow-lg warm-glow"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                 >

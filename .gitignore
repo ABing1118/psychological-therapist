@@ -62,3 +62,5 @@ Thumbs.db
 
 # Redis dump文件
 dump.rdb
+
+.playwright-mcp/

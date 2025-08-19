@@ -11,20 +11,22 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: linear-gradient(135deg, #f0f9ff 0%, #fdf8f6 50%, #e0f2fe 100%);
+    min-height: 100vh;
   }
 }
 
 @layer components {
   .chat-bubble {
-    @apply relative px-4 py-3 rounded-2xl max-w-xs break-words animate-slide-up;
+    @apply relative px-5 py-4 rounded-2xl max-w-xs break-words animate-slide-up shadow-md;
   }
   
   .chat-bubble-user {
-    @apply bg-primary-500 text-white ml-auto rounded-br-md;
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white ml-auto rounded-br-lg shadow-lg;
   }
   
   .chat-bubble-bot {
-    @apply bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-md;
+    @apply bg-white/95 backdrop-blur-sm text-gray-800 shadow-lg border border-warm-200/30 rounded-bl-lg;
   }
   
   .chat-bubble::before {
@@ -58,18 +60,301 @@
   }
   
   .glass-effect {
-    @apply bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg;
+    @apply bg-white/80 backdrop-blur-md border border-white/30 shadow-2xl;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2);
   }
   
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-600 via-warm-600 to-primary-700 bg-clip-text text-transparent;
   }
   
   .floating-card {
-    @apply transform hover:scale-105 transition-all duration-300 hover:shadow-xl;
+    @apply transform hover:scale-105 transition-all duration-500 hover:shadow-2xl;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  }
+  
+  .warm-glow {
+    box-shadow: 0 0 20px rgba(191, 160, 148, 0.3), 0 0 40px rgba(191, 160, 148, 0.1);
+  }
+  
+  .chat-container {
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    min-height: 100vh;
+  }
+  
+  .scroll-section {
+    scroll-snap-align: start;
+  }
+  
+  .parallax-bg {
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+  
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* CodeBuddy风格滚动效果样式 */
+  .codebuddy-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    position: relative;
+  }
+  
+  .sections-container {
+    position: relative;
+    width: 100%;
+  }
+  
+  .section {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform: translateX(100%);
+    opacity: 0.3;
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                z-index 0.1s ease;
+    overflow: hidden;
+    will-change: transform, opacity;
+  }
+  
+  /* 水平滚动页面样式 */
+  .section.horizontal-scroll {
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+  
+  .section:first-child {
+    transform: translateX(0);
+    opacity: 1;
+    z-index: 10;
+  }
+  
+  /* 保留原有的背景样式作为默认 */
+  .section {
+    background: linear-gradient(135deg, #f0f9ff 0%, #fdf8f6 50%, #e0f2fe 100%);
+  }
+  
+  /* 隐藏水平滚动条 */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* 页中页容器样式 */
+  .page-in-page-container {
+    position: relative;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      0 8px 32px rgba(31, 38, 135, 0.37),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* 卡片式滚动样式 */
+  .card-section {
+    overflow: hidden;
+    transform-origin: center center;
+    will-change: transform, opacity;
+    transition: 
+      transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      border-radius 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      box-shadow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .card-section::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .card-section:hover::before {
+    opacity: 1;
   }
 }
 
 .scroll-smooth {
   scroll-behavior: smooth;
 }
+
+/* 滚动指示器样式 */
+.scroll-indicator {
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+}
+
+/* 优化滚动性能 */
+* {
+  scroll-behavior: smooth;
+}
+
+/* 页面过渡效果 */
+.page-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 保持原有的动画样式 */
+.floating-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* 响应式设计 - 移动端优化 */
+@media (max-width: 1024px) {
+  /* 平板端调整 */
+  .section .w-1\/2:first-child {
+    padding: 2rem;
+  }
+  
+  .section h1 {
+    font-size: 3rem;
+  }
+  
+  .scrollable-content {
+    height: 70vh;
+  }
+}
+
+@media (max-width: 768px) {
+  /* 移动端改为上下布局 */
+  .section .h-full.flex.items-center {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  
+  .section .w-1\/2 {
+    width: 100%;
+    height: auto;
+  }
+  
+  .section .w-1\/2:first-child {
+    min-height: 40vh;
+    padding-bottom: 2rem;
+  }
+  
+  .section .w-1\/2:last-child {
+    min-height: 60vh;
+    padding-top: 1rem;
+  }
+  
+  .scrollable-content {
+    height: 50vh;
+  }
+  
+  .section h1 {
+    font-size: 2.5rem;
+  }
+  
+  .page-in-page-container {
+    margin: 0 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 小屏手机优化 */
+  .section h1 {
+    font-size: 2rem;
+  }
+  
+  .section .px-10 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  .scrollable-content {
+    height: 45vh;
+  }
+}
+
+/* CodeBuddy风格的滚动条保持显示 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
+}
+
+/* 统一滚动控制 - 隐藏页中页的独立滚动条 */
+.inner-scroll-content {
+  /* 移除所有滚动条 */
+  overflow: hidden !important;
+  scrollbar-width: none;
+}
+
+.inner-scroll-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* 聊天预览和反馈卡片动画 */
+.chat-preview, .feedback-card, .success-story, .certification {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-preview:hover, .feedback-card:hover, .success-story:hover, .certification:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* 滚动动画 */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.scrollable-content > * {
+  animation: slideInUp 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.scrollable-content > *:nth-child(1) { animation-delay: 0.1s; }
+.scrollable-content > *:nth-child(2) { animation-delay: 0.2s; }
+.scrollable-content > *:nth-child(3) { animation-delay: 0.3s; }
+.scrollable-content > *:nth-child(4) { animation-delay: 0.4s; }
+.scrollable-content > *:nth-child(5) { animation-delay: 0.5s; }
+.scrollable-content > *:nth-child(6) { animation-delay: 0.6s; }
