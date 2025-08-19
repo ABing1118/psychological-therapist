@@ -1,0 +1,47 @@
+{
+  "name": "psychological-therapist-ai",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "心理治疗和自杀预警AI Agent应用",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "node server/index.js",
+    "dev:full": "node scripts/dev-start.js",
+    "build": "vite build",
+    "build:server": "echo '服务器无需构建'",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "start": "node server/index.js",
+    "test": "echo '测试脚本待实现'",
+    "demo": "node demo/conversation-examples.js",
+    "clean": "rm -rf dist node_modules/.cache"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.1",
+    "lucide-react": "^0.263.1",
+    "framer-motion": "^10.12.16",
+    "axios": "^1.4.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "mongodb": "^5.6.0",
+    "redis": "^4.6.7",
+    "openai": "^3.3.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "vite": "^4.4.5",
+    "tailwindcss": "^3.3.3",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.27"
+  }
+}
