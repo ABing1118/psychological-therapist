@@ -1,8 +1,9 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Heart, AlertTriangle, Phone } from 'lucide-react'
+import { Heart, AlertTriangle, Phone, Check } from 'lucide-react'
+import GameCard from './GameCard'
 
-const MessageBubble = ({ message }) => {
+const MessageBubble = ({ message, onQuickReplySelect }) => {
   const isUser = message.type === 'user' || message.sender === 'user'
   
   const formatTime = (timestamp) => {
@@ -32,6 +33,64 @@ const MessageBubble = ({ message }) => {
             <span>{service.label}</span>
           </motion.button>
         ))}
+      </div>
+    )
+  }
+
+  const renderQuickReplyMessage = (message, onSelect) => {
+    if (!message.isQuickReply || !message.quickReplyData) return null
+    
+    const { question, options, selectedOption } = message.quickReplyData
+    
+    return (
+      <div className="space-y-3">
+        <div className="text-sm text-gray-600 mb-3">
+          {question}
+        </div>
+        <div className="space-y-2">
+          {options.map((option, index) => {
+            const isSelected = selectedOption && selectedOption.value === option.value
+            
+            return (
+              <motion.button
+                key={index}
+                onClick={() => !selectedOption && onSelect(message.id, option.value, option.label)}
+                disabled={!!selectedOption}
+                className={`w-full text-left p-3 rounded-lg border transition-all duration-200 text-sm relative ${
+                  isSelected 
+                    ? 'border-green-400 bg-green-50 text-green-700' 
+                    : selectedOption 
+                      ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed' 
+                      : 'border-gray-200 bg-white hover:border-primary-300 hover:bg-primary-50 text-gray-700'
+                }`}
+                whileHover={!selectedOption ? { scale: 1.02 } : {}}
+                whileTap={!selectedOption ? { scale: 0.98 } : {}}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <div className="flex items-center justify-between">
+                  <span>{option.label}</span>
+                  {isSelected && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="ml-2"
+                    >
+                      <Check className="w-5 h-5 text-green-600" />
+                    </motion.div>
+                  )}
+                </div>
+              </motion.button>
+            )
+          })}
+        </div>
+        {!selectedOption && (
+          <div className="text-xs text-gray-500 mt-2">
+            点击选项快速回答，或在下方输入框自由表达
+          </div>
+        )}
       </div>
     )
   }
@@ -66,13 +125,27 @@ const MessageBubble = ({ message }) => {
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 400 }}
         >
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {message.content}
-          </p>
+          {/* 普通消息内容 */}
+          {message.content && (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              {message.content}
+            </p>
+          )}
           
+          {/* 服务按钮 */}
           {!isUser && renderServiceButtons(message.metadata)}
           
-          <div className={`text-xs mt-2 ${
+          {/* 快速回答选项 */}
+          {!isUser && renderQuickReplyMessage(message, onQuickReplySelect)}
+          
+          {/* 游戏卡片 */}
+          {!isUser && message.isGameCard && (
+            <div className="mt-3">
+              <GameCard onPlay={() => console.log('游戏开始')} />
+            </div>
+          )}
+          
+          <div className={`text-xs ${message.content || message.isGameCard ? 'mt-2' : 'mt-0'} ${
             isUser ? 'text-primary-100' : 'text-gray-400'
           }`}>
             {formatTime(message.timestamp)}

@@ -1,24 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Home, MoreVertical, Heart, Phone, GamepadIcon, ClipboardList } from 'lucide-react'
+import { Send, Home, MoreVertical, Heart, Phone, GamepadIcon, ClipboardList, Image } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChat } from '../contexts/ChatContext'
+import { useBackground } from '../contexts/BackgroundContext'
 import MessageBubble from './MessageBubble'
+import EmojiMessage from './EmojiMessage'
 import TypingIndicator from './TypingIndicator'
 import ServicePanel from './ServicePanel'
+import QuickReplyOptions from './QuickReplyOptions'
+import PrivacyNotice from './PrivacyNotice'
+import WearableDataInput from './WearableDataInput'
+import BackgroundSelector from './BackgroundSelector'
 
 const ChatInterface = () => {
   const [inputMessage, setInputMessage] = useState('')
   const [showServices, setShowServices] = useState(false)
+  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false)
   const messagesEndRef = useRef(null)
   const navigate = useNavigate()
+  const { currentBackground } = useBackground()
   
   const { 
     messages, 
     isTyping, 
     userRiskLevel, 
     sendMessage, 
-    clearChat 
+    clearChat,
+    handleQuickReply,
+    wearableDataRequest,
+    submitWearableData,
+    closeWearableDataRequest
   } = useChat()
 
   const scrollToBottom = () => {
@@ -29,19 +41,8 @@ const ChatInterface = () => {
     scrollToBottom()
   }, [messages, isTyping])
 
-  useEffect(() => {
-    if (messages.length === 0) {
-      const welcomeMessage = {
-        type: 'bot',
-        content: '你好，我很高兴你愿意和我聊聊。我是来倾听的，如果你愿意，可以告诉我今天你的感受如何？',
-        sender: 'assistant'
-      }
-      
-      setTimeout(() => {
-        sendMessage(welcomeMessage.content)
-      }, 1000)
-    }
-  }, [])
+
+  // 移除自动发送欢迎消息的逻辑，因为现在使用mock数据
 
   const handleSendMessage = () => {
     if (inputMessage.trim() && !isTyping) {
@@ -50,7 +51,7 @@ const ChatInterface = () => {
     }
   }
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
@@ -78,7 +79,20 @@ const ChatInterface = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col chat-container">
+    <div className="h-screen flex flex-col relative overflow-hidden">
+      {/* 全屏背景图片 */}
+      <div 
+        className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
+        style={{
+          backgroundImage: `url(${currentBackground.path})`,
+          zIndex: -1
+        }}
+      />
+      
+      {/* 背景遮罩层 - 确保内容可读性 */}
+      <div className="fixed inset-0 bg-black/10 backdrop-blur-[0.5px]" style={{ zIndex: -1 }} />
+      
+      <div className="h-screen flex flex-col chat-container relative z-10">
       {/* 头部导航 */}
       <motion.header 
         className="glass-effect border-b border-white/20 px-4 py-3 flex items-center justify-between"
@@ -105,6 +119,15 @@ const ChatInterface = () => {
         
         <div className="flex items-center space-x-2">
           <motion.button
+            onClick={() => setShowBackgroundSelector(true)}
+            className="p-2 hover:bg-white/50 rounded-full transition-colors group"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            title="更换背景"
+          >
+            <Image className="w-5 h-5 text-gray-600 group-hover:text-primary-600 transition-colors" />
+          </motion.button>
+          <motion.button
             onClick={() => setShowServices(!showServices)}
             className="p-2 hover:bg-white/50 rounded-full transition-colors"
             whileHover={{ scale: 1.1 }}
@@ -116,12 +139,56 @@ const ChatInterface = () => {
       </motion.header>
 
       {/* 聊天消息区域 */}
-      <div className="flex-1 overflow-hidden flex">
-        <div className="flex-1 flex flex-col">
+      <div className="flex-1 overflow-hidden flex justify-center">
+        {/* 左侧区域 - 动态切换显示 */}
+        <div className="hidden lg:flex flex-1 max-w-sm p-8 bg-white/30 backdrop-blur-md">
+          {wearableDataRequest.isRequested ? (
+            /* 显示穿戴数据输入组件 */
+            <div className="w-full">
+              <WearableDataInput 
+                onSubmit={submitWearableData}
+                onClose={closeWearableDataRequest}
+              />
+            </div>
+          ) : (
+            /* 默认的装饰内容 */
+            <div className="flex items-center justify-center w-full">
+              <div className="text-center space-y-4 opacity-60">
+                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary-100 to-warm-100 rounded-full flex items-center justify-center">
+                  <Heart className="w-12 h-12 text-primary-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-gray-700">安全陪伴</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    我们在这里倾听<br />
+                    你的每一个感受
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* 中央对话区域 */}
+        <div className="w-full max-w-4xl flex flex-col">
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+            {/* 隐私保密提示 - 位于消息流顶部 */}
+            <PrivacyNotice />
+            
             <AnimatePresence>
               {messages.map((message, index) => (
-                <MessageBubble key={message.id || index} message={message} />
+                message.type === 'emoji' ? (
+                  <EmojiMessage 
+                    key={message.id || index} 
+                    message={message}
+                  />
+                ) : (
+                  <MessageBubble 
+                    key={message.id || index} 
+                    message={message}
+                    onQuickReplySelect={handleQuickReply}
+                  />
+                )
               ))}
               {isTyping && <TypingIndicator />}
             </AnimatePresence>
@@ -140,9 +207,9 @@ const ChatInterface = () => {
                 <textarea
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyDown}
                   placeholder="在这里输入你想说的话..."
-                  className="w-full p-4 pr-12 bg-white/95 backdrop-blur-sm rounded-2xl border border-warm-200/50 focus:border-primary-400 focus:ring-2 focus:ring-primary-400/30 outline-none resize-none max-h-32 shadow-lg smooth-transition"
+                  className="w-full p-4 pr-12 bg-white/75 backdrop-blur-md rounded-2xl border border-warm-200/40 focus:border-primary-400 focus:ring-2 focus:ring-primary-400/30 outline-none resize-none max-h-32 shadow-lg smooth-transition"
                   rows="1"
                   disabled={isTyping}
                   style={{ minHeight: '52px' }}
@@ -177,14 +244,31 @@ const ChatInterface = () => {
             </div>
           </motion.div>
         </div>
-
-        {/* 服务面板 */}
-        <AnimatePresence>
-          {showServices && (
-            <ServicePanel onClose={() => setShowServices(false)} />
-          )}
-        </AnimatePresence>
+        
+        {/* 右侧装饰区域 */}
+        <div className="hidden lg:flex flex-1 max-w-sm items-center justify-center p-8 bg-white/30 backdrop-blur-md">
+          <div className="text-center space-y-4 opacity-60">
+            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-warm-100 to-primary-100 rounded-full flex items-center justify-center">
+              <Phone className="w-12 h-12 text-warm-500" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium text-gray-700">24/7 支持</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                紧急时刻<br />
+                我们随时为你提供帮助
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
+
+
+      {/* 服务面板 */}
+      <AnimatePresence>
+        {showServices && (
+          <ServicePanel onClose={() => setShowServices(false)} />
+        )}
+      </AnimatePresence>
 
       {/* 高风险警告 */}
       <AnimatePresence>
@@ -211,6 +295,13 @@ const ChatInterface = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 背景选择器 */}
+      <BackgroundSelector 
+        isOpen={showBackgroundSelector} 
+        onClose={() => setShowBackgroundSelector(false)} 
+      />
+      </div>
     </div>
   )
 }

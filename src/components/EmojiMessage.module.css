@@ -1,0 +1,16 @@
+/* 简洁的表情包样式 */
+.emojiImage {
+  /* 保持原始渲染 */
+  image-rendering: auto;
+}
+
+/* 鼠标悬停时的轻微放大效果 */
+.emojiImage:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.emojiContainer {
+  /* 确保容器不会影响显示 */
+  overflow: visible;
+}

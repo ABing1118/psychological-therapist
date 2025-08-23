@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ChatProvider } from './contexts/ChatContext'
+import { BackgroundProvider } from './contexts/BackgroundContext'
 import LandingPage from './components/LandingPage'
 import ChatInterface from './components/ChatInterface'
 import AdminPanel from './components/AdminPanel'
@@ -26,15 +27,17 @@ function App() {
 
   return (
     <Router>
-      <ChatProvider>
-        <div className="App min-h-screen bg-gradient-to-br from-blue-50 to-warm-50">
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/chat" element={<ChatInterface />} />
-            <Route path="/admin" element={<AdminPanel />} />
-          </Routes>
-        </div>
-      </ChatProvider>
+      <BackgroundProvider>
+        <ChatProvider>
+          <div className="App min-h-screen">
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/chat" element={<ChatInterface />} />
+              <Route path="/admin" element={<AdminPanel />} />
+            </Routes>
+          </div>
+        </ChatProvider>
+      </BackgroundProvider>
     </Router>
   )
 }
