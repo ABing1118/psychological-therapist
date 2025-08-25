@@ -251,12 +251,16 @@ export const emojiCategories = {
  */
 export function getEmojiByInstruction(instruction) {
   const match = instruction.match(/emoji:(\w+)/i)
-  if (!match) return null
+  if (!match) {
+    console.warn('getEmojiByInstruction: No match found for instruction:', instruction)
+    return null
+  }
   
   const category = match[1].toLowerCase()
   const categoryConfig = emojiCategories[category]
   
   if (!categoryConfig || categoryConfig.emojis.length === 0) {
+    console.warn('getEmojiByInstruction: No category config or emojis for:', category)
     return null
   }
   
@@ -360,7 +364,10 @@ export function getScenarioEmoji(scenario) {
  * @returns {Object} 消息对象
  */
 export function createEmojiMessage(emojiPath) {
-  if (!emojiPath) return null
+  if (!emojiPath) {
+    console.warn('createEmojiMessage: emojiPath is null or undefined')
+    return null
+  }
   
   return {
     type: 'emoji',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Send, Home, MoreVertical, Heart, Phone, GamepadIcon, ClipboardList, Image } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -6,12 +6,14 @@ import { useChat } from '../contexts/ChatContext'
 import { useBackground } from '../contexts/BackgroundContext'
 import MessageBubble from './MessageBubble'
 import EmojiMessage from './EmojiMessage'
+import MusicCard from './MusicCard'
 import TypingIndicator from './TypingIndicator'
 import ServicePanel from './ServicePanel'
 import QuickReplyOptions from './QuickReplyOptions'
 import PrivacyNotice from './PrivacyNotice'
 import WearableDataInput from './WearableDataInput'
 import BackgroundSelector from './BackgroundSelector'
+import CharacterDisplay from './CharacterDisplay'
 
 const ChatInterface = () => {
   const [inputMessage, setInputMessage] = useState('')
@@ -20,6 +22,12 @@ const ChatInterface = () => {
   const messagesEndRef = useRef(null)
   const navigate = useNavigate()
   const { currentBackground } = useBackground()
+  
+  // 布局调整状态
+  const [chatWidth, setChatWidth] = useState(40) // 聊天区域宽度百分比
+  const [sidebarWidth, setSidebarWidth] = useState(15) // 右侧栏宽度百分比
+  const [isDragging, setIsDragging] = useState(false)
+  const dragRef = useRef(null)
   
   const { 
     messages, 
@@ -30,7 +38,14 @@ const ChatInterface = () => {
     handleQuickReply,
     wearableDataRequest,
     submitWearableData,
-    closeWearableDataRequest
+    closeWearableDataRequest,
+    // Demo相关功能
+    isDemoMode,
+    startDemo,
+    stopDemo,
+    resetDemo,
+    getCurrentExpectedInput,
+    getDemoProgress
   } = useChat()
 
   const scrollToBottom = () => {
@@ -41,6 +56,66 @@ const ChatInterface = () => {
     scrollToBottom()
   }, [messages, isTyping])
 
+  // 穿戴数据请求时自动调整布局
+  useEffect(() => {
+    if (wearableDataRequest.isRequested) {
+      // 当穿戴数据请求时，增加右侧栏宽度，压缩聊天区域
+      setChatWidth(30) // 聊天区域压缩到30%
+      setSidebarWidth(25) // 右侧栏扩展到25%
+    } else {
+      // 恢复默认布局
+      setChatWidth(40)
+      setSidebarWidth(15)
+    }
+  }, [wearableDataRequest.isRequested])
+
+  // 拖拽处理函数
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }, [])
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return
+    
+    const containerWidth = window.innerWidth
+    const mouseX = e.clientX
+    const characterWidth = 40 // 人物区域固定40%
+    const leftOffset = (containerWidth * (5 + characterWidth)) / 100 // 5%预留 + 40%人物
+    
+    // 计算新的聊天区域宽度百分比
+    const newChatWidthPx = mouseX - leftOffset
+    const newChatWidthPercent = (newChatWidthPx / containerWidth) * 100
+    
+    // 设置最小和最大宽度限制
+    const minChatWidth = 20 // 聊天区域最小20%
+    const maxChatWidth = 60 // 聊天区域最大60%
+    const minSidebarWidth = 10 // 右侧栏最小10%
+    const maxSidebarWidth = 35 // 右侧栏最大35%
+    
+    const clampedChatWidth = Math.max(minChatWidth, Math.min(maxChatWidth, newChatWidthPercent))
+    const newSidebarWidth = 100 - 5 - 40 - clampedChatWidth // 总宽度100% - 预留5% - 人物40% - 聊天区域
+    
+    if (newSidebarWidth >= minSidebarWidth && newSidebarWidth <= maxSidebarWidth) {
+      setChatWidth(clampedChatWidth)
+      setSidebarWidth(newSidebarWidth)
+    }
+  }, [isDragging])
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp])
 
   // 移除自动发送欢迎消息的逻辑，因为现在使用mock数据
 
@@ -118,6 +193,40 @@ const ChatInterface = () => {
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Demo控制按钮 */}
+          {isDemoMode ? (
+            <>
+              <motion.button
+                onClick={stopDemo}
+                className="px-3 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-700 rounded-full transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="停止Demo模式"
+              >
+                停止Demo
+              </motion.button>
+              <motion.button
+                onClick={resetDemo}
+                className="px-3 py-1 text-xs bg-orange-500/20 hover:bg-orange-500/30 text-orange-700 rounded-full transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="重置Demo"
+              >
+                重置
+              </motion.button>
+            </>
+          ) : (
+            <motion.button
+              onClick={startDemo}
+              className="px-3 py-1 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-700 rounded-full transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="开始Demo演示"
+            >
+              开始Demo
+            </motion.button>
+          )}
+          
           <motion.button
             onClick={() => setShowBackgroundSelector(true)}
             className="p-2 hover:bg-white/50 rounded-full transition-colors group"
@@ -139,38 +248,22 @@ const ChatInterface = () => {
       </motion.header>
 
       {/* 聊天消息区域 */}
-      <div className="flex-1 overflow-hidden flex justify-center">
-        {/* 左侧区域 - 动态切换显示 */}
-        <div className="hidden lg:flex flex-1 max-w-sm p-8 bg-white/30 backdrop-blur-md">
-          {wearableDataRequest.isRequested ? (
-            /* 显示穿戴数据输入组件 */
-            <div className="w-full">
-              <WearableDataInput 
-                onSubmit={submitWearableData}
-                onClose={closeWearableDataRequest}
-              />
-            </div>
-          ) : (
-            /* 默认的装饰内容 */
-            <div className="flex items-center justify-center w-full">
-              <div className="text-center space-y-4 opacity-60">
-                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary-100 to-warm-100 rounded-full flex items-center justify-center">
-                  <Heart className="w-12 h-12 text-primary-500" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium text-gray-700">安全陪伴</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    我们在这里倾听<br />
-                    你的每一个感受
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+      <div className="flex-1 overflow-hidden flex">
+        {/* 左侧预留空间 - 5% */}
+        <div className="hidden lg:flex w-[5%] p-2">
+          {/* 预留给未来内容的空组件 */}
+          <div className="w-full h-full flex items-center justify-center">
+            {/* 可以放置导航菜单或其他功能 */}
+          </div>
         </div>
-        
-        {/* 中央对话区域 */}
-        <div className="w-full max-w-4xl flex flex-col">
+
+        {/* 人物区域 - 40% */}
+        <div className="hidden lg:flex w-[40%] p-6">
+          <CharacterDisplay />
+        </div>
+
+        {/* 中央对话区域 - 动态宽度 */}
+        <div className="flex-1 flex flex-col" style={{ width: `${chatWidth}%` }}>
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
             {/* 隐私保密提示 - 位于消息流顶部 */}
             <PrivacyNotice />
@@ -179,6 +272,11 @@ const ChatInterface = () => {
               {messages.map((message, index) => (
                 message.type === 'emoji' ? (
                   <EmojiMessage 
+                    key={message.id || index} 
+                    message={message}
+                  />
+                ) : message.type === 'music' ? (
+                  <MusicCard 
                     key={message.id || index} 
                     message={message}
                   />
@@ -194,6 +292,60 @@ const ChatInterface = () => {
             </AnimatePresence>
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Demo提示面板 */}
+          {isDemoMode && (
+            <motion.div 
+              className="bg-blue-500/10 border border-blue-500/20 backdrop-blur-sm rounded-lg p-3 mx-4 mb-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs text-blue-800 mb-1">Demo模式进行中</p>
+                  {getCurrentExpectedInput() && (
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">请输入：</span>
+                      <span 
+                        className="bg-yellow-100 hover:bg-yellow-200 px-2 py-0.5 rounded text-xs cursor-pointer transition-colors select-all"
+                        onClick={async (e) => {
+                          try {
+                            await navigator.clipboard.writeText(getCurrentExpectedInput())
+                            // 显示复制成功提示（可选）
+                            const span = e.target
+                            const originalText = span.textContent
+                            span.textContent = '已复制!'
+                            span.className = 'bg-green-100 hover:bg-green-200 px-2 py-0.5 rounded text-xs cursor-pointer transition-colors select-all'
+                            setTimeout(() => {
+                              span.textContent = originalText
+                              span.className = 'bg-yellow-100 hover:bg-yellow-200 px-2 py-0.5 rounded text-xs cursor-pointer transition-colors select-all'
+                            }, 1000)
+                          } catch (err) {
+                            console.error('复制失败:', err)
+                          }
+                        }}
+                        title="点击复制文本"
+                      >
+                        {getCurrentExpectedInput()}
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <div className="ml-3">
+                  <div className="text-xs text-gray-500">
+                    {getDemoProgress().currentStep} / {getDemoProgress().totalSteps}
+                  </div>
+                  <div className="w-16 h-1.5 bg-gray-200 rounded-full mt-1">
+                    <div 
+                      className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                      style={{ width: `${getDemoProgress().progress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* 输入区域 */}
           <motion.div 
@@ -245,23 +397,69 @@ const ChatInterface = () => {
           </motion.div>
         </div>
         
-        {/* 右侧装饰区域 */}
-        <div className="hidden lg:flex flex-1 max-w-sm items-center justify-center p-8 bg-white/30 backdrop-blur-md">
-          <div className="text-center space-y-4 opacity-60">
-            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-warm-100 to-primary-100 rounded-full flex items-center justify-center">
-              <Phone className="w-12 h-12 text-warm-500" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium text-gray-700">24/7 支持</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                紧急时刻<br />
-                我们随时为你提供帮助
-              </p>
-            </div>
+        {/* 拖拽分割条 */}
+        <div 
+          className={`hidden lg:flex w-1 bg-gray-300/50 hover:bg-gray-400/70 cursor-col-resize transition-colors ${
+            isDragging ? 'bg-blue-400/70' : ''
+          }`}
+          onMouseDown={handleMouseDown}
+          ref={dragRef}
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-0.5 h-8 bg-gray-400 rounded-full opacity-60"></div>
           </div>
         </div>
-      </div>
+        
+        {/* 右侧功能区域 - 动态宽度 */}
+        <div 
+          className="hidden lg:flex p-6 bg-white/30 backdrop-blur-md" 
+          style={{ width: `${sidebarWidth}%` }}
+        >
+          {wearableDataRequest.isRequested ? (
+            /* 穿戴数据输入组件 */
+            <div className="w-full">
+              <WearableDataInput 
+                onSubmit={submitWearableData}
+                onClose={closeWearableDataRequest}
+              />
+            </div>
+          ) : (
+            /* 默认的功能展示区域 */
+            <div className="w-full flex flex-col justify-center space-y-8">
+              {/* 安全陪伴 */}
+              <div className="text-center space-y-4 opacity-70">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary-100 to-warm-100 rounded-full flex items-center justify-center shadow-md">
+                  <Heart className="w-10 h-10 text-primary-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-700">安全陪伴</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    我们在这里倾听<br />
+                    你的每一个感受
+                  </p>
+                </div>
+              </div>
 
+              {/* 分割线 */}
+              <div className="border-t border-gray-300/50 mx-8"></div>
+
+              {/* 24/7 支持 */}
+              <div className="text-center space-y-4 opacity-70">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-warm-100 to-primary-100 rounded-full flex items-center justify-center shadow-md">
+                  <Phone className="w-10 h-10 text-warm-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-700">24/7 支持</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    紧急时刻<br />
+                    我们随时为你提供帮助
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* 服务面板 */}
       <AnimatePresence>

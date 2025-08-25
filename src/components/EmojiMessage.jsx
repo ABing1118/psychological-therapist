@@ -68,6 +68,7 @@ const EmojiMessage = ({ message }) => {
                 }
               }}
               onError={(e) => {
+                console.error('Emoji image failed to load:', message.emoji, e)
                 // 简单隐藏失败的图片
                 e.target.style.display = 'none'
                 const container = e.target.closest('div[class*="mb-4"]')

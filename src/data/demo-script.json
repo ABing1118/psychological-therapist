@@ -1,0 +1,223 @@
+{
+  "demo_config": {
+    "auto_emoji": false,
+    "auto_wearable_detect": false,
+    "strict_mode": true,
+    "welcome_enabled": false
+  },
+  "demo_script": {
+    "conversations": [
+      {
+        "id": "step_1",
+        "user_input": "最近项目特别紧张，天天加班到半夜，人非常紧绷",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "listening",
+            "content": "听起来工作压力确实压得你喘不过气了。这种脑子转不动、紧张的感觉，最近大概多久出现一次呢？",
+            "emoji": "caring",
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_2",
+        "user_input": "差不多每天吧，尤其是晚上躺床上的时候，翻来覆去睡不着，满脑子都是没做完的工作。",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "general",
+            "content": "我完全能理解这种疲惫感。现在已经很晚，工作又这么累，你有感觉哪里不舒服吗？",
+            "emoji": null,
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_3",
+        "user_input": "就是单纯的烦，不知道该做什么？",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "relaxing",
+            "content": "嗯嗯，要不这样？我们先做个简单的深呼吸放松练习，好吗？你可以找个舒服的姿势坐好，跟我一起：慢慢吸气，1-2-3-4，屏住2秒，再缓缓呼气，1-2-3-4-5-6…对，就这样，再来一次。",
+            "emoji": null,
+            "actions": []
+          },
+          {
+            "delay": 2000,
+            "character_state": "relaxing",
+            "content": "如果感觉有帮助，可以再做几组，等你做完了，告诉我一声，我还可以给你推送几个好玩的小游戏。",
+            "emoji": "relax",
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_4",
+        "user_input": "我做完了。",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "great",
+            "content": "接下来啊，推荐你玩2分钟这个小游戏。当然，如果你希望和我继续聊天也没有问题！",
+            "emoji": null,
+            "actions": ["push_game_card"]
+          },
+          {
+            "delay": 2000,
+            "character_state": "great",
+            "content": "你玩完了游戏可以回来告诉我哦～",
+            "emoji": null,
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_5",
+        "user_input": "我玩完了",
+        "ai_responses": [
+          {
+            "delay": 3000,
+            "character_state": "general",
+            "content": "在你忙的片刻，玩一玩，真的可以消除下疲劳。你现在感受好一些了不？",
+            "emoji": null,
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_6",
+        "user_input": "也就那样吧，一想到明天还要上班，就很绝望，睡不着。",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "listening",
+            "content": "你一定也是因为很在乎把事情做好才会焦虑的，非常能理解你现在的心情...我有个简单的心理量表测试，题数不多，但能帮你理清现在的感受，你愿意试试吗？",
+            "emoji": "hug",
+            "actions": []
+          },
+          {
+            "delay": 2000,
+            "character_state": "listening",
+            "content": "这些量表的结果和你的答案同样属于保密范围。它们会作为你的个人档案被严格加密保存，仅用于我跟你之间的专业评估和讨论，绝不会泄露给任何第三方。当然，如果你不希望做测试，我们也可以继续沟通来尽可能舒缓你的情绪！",
+            "emoji": null,
+            "actions": ["push_psychological_test"]
+          }
+        ]
+      },
+      {
+        "id": "step_8",
+        "user_input": "psychological_test_completed",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "clapping",
+            "content": "我看你好像已经完成量表了，我来帮你一起分析一下结果哈。",
+            "emoji": "playwithyou",
+            "actions": []
+          },
+          {
+            "delay": 2000,
+            "character_state": "listening",
+            "content": "轻度抑郁说明你这段时间真的辛苦了，也不是你不够坚强，就像感冒一样，是身体在提醒你需要多照顾自己了。这里有全国24小时心理咨询热线 400-161-9995，专业人员能给你更具体的帮助，需要记一下吗？",
+            "emoji": null,
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_9",
+        "user_input": "不想打电话。",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "tips",
+            "content": "没关系，那试试一些日常能做的小事怎么样？比如每天留5分钟做刚才的深呼吸...哪怕是准时吃了午饭也算，你觉得哪种更想试试？",
+            "emoji": null,
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_10",
+        "user_input": "我觉得记录一些小事好像还行，至少不用说话。",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "encourage",
+            "content": "棒棒哒！",
+            "emoji": "youaregreat",
+            "actions": []
+          },
+          {
+            "delay": 2000,
+            "character_state": "encourage",
+            "content": "其实记录本身就是在帮你收集阳光呢...对了，我们的产品有个穿戴信息工具，能通过心率、睡眠周期这些数据，悄悄帮你监测情绪和健康状态，需要我简单说说怎么用吗？",
+            "emoji": null,
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_11",
+        "user_input": "嗯，可以听听看。",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "general",
+            "content": "可以点开侧边栏，把咱们每天的数据输入进去，你可以试试看，有操作不便吗？",
+            "emoji": null,
+            "actions": ["trigger_wearable_data"]
+          }
+        ]
+      },
+      {
+        "id": "step_12",
+        "user_input": "还可以，我知道怎么用了。",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "tips",
+            "content": "很好，我看现在已经凌晨1点了，你喜欢听点放松的音乐助眠吗？",
+            "emoji": null,
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_13",
+        "user_input": "你有可以让我快速入睡的方法吗？",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "encourage",
+            "content": "有的，但不同的人适合不同的方法，我们可以多尝试。我给你推荐这段适合比较助眠的音乐，你看喜欢吗？",
+            "emoji": null,
+            "actions": ["push_music_card"]
+          },
+          {
+            "delay": 2000,
+            "character_state": "relaxing",
+            "content": "可以把手机放下，全身放松...把注意力集中在呼吸上...我先不打扰你，晚安，如果还睡不着，可以随时再找我哈",
+            "emoji": "goodnight",
+            "actions": []
+          }
+        ]
+      },
+      {
+        "id": "step_14",
+        "user_input": "嗯嗯，晚安",
+        "ai_responses": [
+          {
+            "delay": 1000,
+            "character_state": "general",
+            "content": "晚安，好梦～",
+            "emoji": "goodnight",
+            "actions": []
+          }
+        ]
+      }
+    ]
+  }
+}

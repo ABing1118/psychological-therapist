@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { selectEmoji, getScenarioEmoji, createEmojiMessage, extractEmojiInstruction } from '../utils/emojiConfig.js'
+import { selectEmoji, getScenarioEmoji, createEmojiMessage, extractEmojiInstruction, getEmojiByInstruction } from '../utils/emojiConfig.js'
+import { useCharacter } from './CharacterContext'
+import { useDemoScript } from '../hooks/useDemoScript'
 
 const ChatContext = createContext()
 
@@ -302,14 +304,15 @@ const mockMessages = [
 ]
 
 const initialState = {
-  messages: mockMessages, // 使用mock数据而不是空数组
+  messages: [], // 清空初始消息
   isTyping: false,
   sessionId: null,
-  userRiskLevel: 'medium', // 设置为medium来显示风险评估
+  userRiskLevel: 'none', // 重置为none，让用户从干净状态开始
+  initialized: false, // 添加初始化状态到state中
   userInfo: {
-    hasSharedEmotions: true,
+    hasSharedEmotions: false,
     hasExpressedSuicidalThoughts: false,
-    conversationDepth: 2
+    conversationDepth: 0
   },
   services: {
     emergency: false,
@@ -362,7 +365,8 @@ function chatReducer(state, action) {
     case 'INIT_SESSION':
       return {
         ...state,
-        sessionId: action.payload.sessionId || uuidv4()
+        sessionId: action.payload.sessionId || uuidv4(),
+        initialized: true
       }
     
     case 'ADD_MESSAGE':
@@ -553,10 +557,83 @@ function chatReducer(state, action) {
 
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(chatReducer, initialState)
+  const { processActionInstruction, changeState } = useCharacter()
+  const demoScript = useDemoScript()
 
   useEffect(() => {
+    if (state.initialized) return // 防止重复初始化
+    
     dispatch({ type: 'INIT_SESSION', payload: { sessionId: uuidv4() } })
-  }, [])
+  }, [state.initialized])
+
+  // 单独的useEffect来添加欢迎消息
+  useEffect(() => {
+    if (!state.initialized) return // 等待初始化完成
+    if (state.messages.length > 0) return // 如果已有消息，不重复添加
+    
+    console.log('Adding welcome message')
+    // 添加欢迎消息
+    const timeoutId = setTimeout(() => {
+      dispatch({ 
+        type: 'ADD_MESSAGE', 
+        payload: {
+          id: uuidv4(),
+          type: 'bot',
+          content: '你好呀，很高兴认识你，今天想和我聊聊什么呢？学习、工作、生活还是情感方面的事？',
+          sender: 'assistant',
+          timestamp: Date.now()
+        }
+      })
+    }, 1000)
+    
+    return () => clearTimeout(timeoutId)
+  }, [state.initialized, state.messages.length])
+
+  // 监听心理测试状态变化，用于Demo模式
+  useEffect(() => {
+    if (!demoScript.isDemoMode) return
+    
+    const psychologicalTestState = {
+      isActive: state.psychologicalTest.isActive,
+      isCompleted: state.psychologicalTest.hasCompleted
+    }
+    
+    // 检查是否需要触发demo脚本的下一步
+    const matchedConversation = demoScript.checkPsychologicalTestStatus(psychologicalTestState)
+    
+    if (matchedConversation) {
+      console.log('Demo mode: Psychological test status changed, executing responses:', matchedConversation)
+      
+      // 延迟执行，确保状态已经更新
+      setTimeout(() => {
+        // 执行匹配到的AI回应
+        matchedConversation.ai_responses.forEach((response, index) => {
+          setTimeout(() => {
+            const messageWithMeta = {
+              ...response,
+              id: uuidv4(),
+              timestamp: Date.now()
+            }
+            executeDemoAction(messageWithMeta)
+            
+            // 如果这是step_8的最后一个回应，手动调用executeAIResponses的完成逻辑
+            if (matchedConversation.id === 'step_8' && index === matchedConversation.ai_responses.length - 1) {
+              setTimeout(() => {
+                console.log('Manual step progression: step_8 completed, forcing jump to step_9')
+                // 调用executeAIResponses的完成回调逻辑
+                demoScript.executeAIResponses(matchedConversation, null).then(() => {
+                  console.log('Step_8 AI responses execution completed')
+                }).catch(error => {
+                  console.error('Error in executeAIResponses:', error)
+                })
+              }, 1000)
+            }
+          }, index * (response.delay || 1000))
+        })
+        
+      }, 500)
+    }
+  }, [state.psychologicalTest.isActive, state.psychologicalTest.hasCompleted, demoScript])
 
   const addMessage = (message) => {
     dispatch({ type: 'ADD_MESSAGE', payload: message })
@@ -567,7 +644,10 @@ export function ChatProvider({ children }) {
    * @param {Object} message - 消息对象
    * @param {boolean} autoEmoji - 是否自动添加表情包
    */
-  const addMessageWithEmoji = (message, autoEmoji = true) => {
+  const addMessageWithEmoji = (message, autoEmoji = false) => {
+    // Demo模式下禁用自动表情包逻辑
+    const demoConfig = demoScript.getDemoConfig()
+    
     // 如果是AI消息，检查表情包指令
     if (message.type === 'bot' && message.sender === 'assistant' && message.content) {
       const { cleanContent, emojiPath } = extractEmojiInstruction(message.content)
@@ -592,21 +672,11 @@ export function ChatProvider({ children }) {
           }
         }, 500) // 稍微延迟显示表情包
       }
-      // 禁用自动表情包，只保留指令触发
-      // } else if (autoEmoji) {
-      //   const selectedEmoji = selectEmoji(message.content, '', state.userRiskLevel)
-      //   if (selectedEmoji) {
-      //     setTimeout(() => {
-      //       const emojiMessage = createEmojiMessage(selectedEmoji)
-      //       if (emojiMessage) {
-      //         addMessage({
-      //           ...emojiMessage,
-      //           id: uuidv4()
-      //         })
-      //       }
-      //     }, 800)
-      //   }
-      // }
+      
+      // 处理action指令，控制人物状态
+      processActionInstruction(message.content)
+      
+      // 自动表情包逻辑已完全禁用
     } else {
       // 非AI消息直接添加
       addMessage(message)
@@ -847,11 +917,11 @@ export function ChatProvider({ children }) {
     
     // 延迟3秒后询问，让用户先消化测试结果
     setTimeout(() => {
-      addMessageWithEmoji({
-        type: 'bot',
-        content: '你的心理状态看起来不错！我这里有一个轻松的小游戏，可以帮你进一步放松心情。 emoji:relax',
-        sender: 'assistant'
-      })
+      // addMessageWithEmoji({
+      //   type: 'bot',
+      //   content: '你的心理状态看起来不错！我这里有一个轻松的小游戏，可以帮你进一步放松心情。 emoji:relax',
+      //   sender: 'assistant'
+      // })
       
       // 再延迟1秒后发送快速回复选项
       setTimeout(() => {
@@ -915,11 +985,11 @@ export function ChatProvider({ children }) {
     
     // 延迟2秒后发送测试介绍消息
     setTimeout(() => {
-      addMessage({
-        type: 'bot',
-        content: '基于我们的对话，我想你可能会对一个简短的心理健康评估感兴趣。这可以帮助我更好地了解你的感受，为你提供更准确的支持。',
-        sender: 'assistant'
-      })
+      // addMessage({
+      //   type: 'bot',
+      //   content: '基于我们的对话，我想你可能会对一个简短的心理健康评估感兴趣。这可以帮助我更好地了解你的感受，为你提供更准确的支持。',
+      //   sender: 'assistant'
+      // })
       
       // 再延迟1秒后发送快速回复选项
       setTimeout(() => {
@@ -1004,6 +1074,18 @@ export function ChatProvider({ children }) {
       content: '谢谢你提供的健康数据！这些信息将帮助我更好地了解你的身体状况，为你提供更准确的建议。 emoji:caring',
       sender: 'assistant'
     })
+    
+    // 在Demo模式下，自动推进到下一步
+    if (demoScript.isDemoMode) {
+      console.log('Demo mode: Wearable data submitted, auto-progressing to next step')
+      setTimeout(() => {
+        // 模拟用户输入来推进demo
+        const expectedInput = demoScript.getCurrentExpectedInput()
+        if (expectedInput) {
+          demoScript.handleUserInput(expectedInput, executeDemoAction)
+        }
+      }, 2000) // 等待确认消息显示后再推进
+    }
   }
 
   /**
@@ -1011,6 +1093,133 @@ export function ChatProvider({ children }) {
    */
   const closeWearableDataRequest = () => {
     dispatch({ type: 'CLOSE_WEARABLE_DATA_REQUEST' })
+  }
+
+  /**
+   * 发送音乐卡片消息
+   * @param {string} musicType - 音乐类型 'meditation', 'relaxing', etc.
+   * @param {Object} customData - 自定义音乐数据
+   */
+  const sendMusicCard = (musicType = 'meditation', customData = null) => {
+    const musicMessage = {
+      type: 'music',
+      id: uuidv4(),
+      musicType: musicType,
+      timestamp: Date.now(),
+      sender: 'assistant',
+      customData: customData
+    }
+    
+    addMessage(musicMessage)
+  }
+
+  /**
+   * Demo脚本动作执行器
+   * @param {Object} message - 包含动作信息的消息对象
+   */
+  const executeDemoAction = (message) => {
+    console.log('executeDemoAction called with message:', message)
+    
+    // 处理多条回复的情况：只有第一条消息处理人物状态和表情包
+    const isFirstResponse = !message.isMultipleResponse || message.responseIndex === 0
+    
+    // 1. 立即切换人物状态（只在第一条消息时执行）
+    if (isFirstResponse && message.character_state) {
+      console.log('Changing character state to:', message.character_state)
+      changeState(message.character_state)
+    }
+    
+    // 2. 立即发送表情包（只在第一条消息时执行）
+    if (isFirstResponse && message.emoji) {
+      console.log('Creating emoji message for category:', message.emoji)
+      const emojiPath = getEmojiByInstruction(`emoji:${message.emoji}`)
+      console.log('Converted emoji path:', emojiPath)
+      
+      if (emojiPath) {
+        const emojiMessage = createEmojiMessage(emojiPath)
+        if (emojiMessage) {
+          const finalEmojiMessage = {
+            ...emojiMessage,
+            id: uuidv4()
+          }
+          console.log('Adding emoji message to chat:', finalEmojiMessage)
+          addMessage(finalEmojiMessage)
+        } else {
+          console.warn('Failed to create emoji message for path:', emojiPath)
+        }
+      } else {
+        console.warn('Failed to convert emoji category to path:', message.emoji)
+      }
+    }
+    
+    // 3. 显示"正在输入"状态（每条消息都需要）
+    setTyping(true)
+    
+    // 4. 根据消息长度计算合适的延时
+    const baseDelay = 800 // 基础延时
+    const contentDelay = Math.min(message.content.length * 30, 1500) // 根据内容长度，最多1.5秒
+    const totalDelay = baseDelay + contentDelay
+    
+    // 5. 延时后发送文字内容
+    setTimeout(() => {
+      setTyping(false)
+      
+      // 添加文字消息
+      addMessage({
+        type: 'bot',
+        content: message.content,
+        sender: 'assistant',
+        timestamp: message.timestamp,
+        id: message.id
+      })
+      
+      // 6. 处理卡片类动作（每个固定1秒生成状态）
+      // 如果当前消息有动作，就处理，不需要等到最后一条消息
+      if (message.actions && message.actions.length > 0) {
+        message.actions.forEach((action, index) => {
+          // 为每个动作增加延时，避免同时显示多个typing状态
+          const actionDelay = index * 200 // 每个动作间隔200ms
+          
+          setTimeout(() => {
+            setTyping(true)
+            
+            setTimeout(() => {
+              setTyping(false)
+              
+              switch(action) {
+                case 'push_game_card':
+                  // 推送游戏卡片（使用现有功能）
+                  offerGameRecommendation()
+                  break
+                
+                case 'push_music_card':
+                  // 推送音乐卡片
+                  sendMusicCard('meditation')
+                  break
+                
+                case 'trigger_wearable_data':
+                  // 触发穿戴数据请求
+                  requestWearableData(['睡眠', '心率'])
+                  break
+                
+                case 'push_psychological_test':
+                  // 推送心理测试授权
+                  offerPsychologicalTest()
+                  break
+                
+                case 'start_psychological_test':
+                  // 开始心理测试
+                  startPsychologicalTest('phq9')
+                  break
+                
+                default:
+                  console.warn(`Unknown demo action: ${action}`)
+              }
+            }, 1000) // 固定1秒生成状态
+          }, actionDelay)
+        })
+      }
+    }, totalDelay)
   }
 
   const exportUserData = () => {
@@ -1198,11 +1407,44 @@ export function ChatProvider({ children }) {
       sender: 'user'
     })
 
-    // 【表情包测试功能】检查完整的测试指令
+    // 检查是否为Demo模式
+    if (demoScript.isDemoMode) {
+      // Demo模式：使用脚本处理
+      try {
+        console.log('Demo mode: processing user input:', content)
+        const result = await demoScript.handleUserInput(content, executeDemoAction)
+        console.log('Demo mode: handle result:', result)
+        
+        if (!result.matched) {
+          // 如果没匹配到，给用户提示
+          const expectedInput = demoScript.getCurrentExpectedInput()
+          console.log('Demo mode: expected input:', expectedInput)
+          
+          if (expectedInput) {
+            setTimeout(() => {
+              addMessage({
+                type: 'bot',
+                content: `请按照剧本输入：${expectedInput}`,
+                sender: 'assistant',
+                id: uuidv4(),
+                timestamp: Date.now()
+              })
+            }, 1000)
+          }
+        }
+      } catch (error) {
+        console.error('Demo script error:', error)
+      }
+      return
+    }
+
+    // 非Demo模式：保留测试指令（用于开发调试）
     const testEmojiMatch = content.match(/^测试表情包[\s:]*(comfort|encourage|caring|relax|greeting|hug|youaregreat|heart|laugh|ok|playwithyou|workout|goodnight|feelingsad|terrified|angry|exhausted|confused|eating|byebye)$/i)
     if (testEmojiMatch) {
       const category = testEmojiMatch[1].toLowerCase()
+      setTyping(true)
       setTimeout(() => {
+        setTyping(false)
         addMessageWithEmoji({
           type: 'bot',
           content: `这是${category}类别的表情包测试 emoji:${category}`,
@@ -1212,100 +1454,65 @@ export function ChatProvider({ children }) {
       return
     }
 
-    // 【简化测试指令】- 支持所有20个分类
-    const simpleTestMatch = content.match(/^(安慰|鼓励|关爱|放松|问候|拥抱|很棒|爱心|笑|好的|游戏|运动|晚安|难过|恐惧|愤怒|疲惫|困惑|吃饭|再见)$/i)
-    if (simpleTestMatch) {
-      const categoryMap = {
-        '安慰': 'comfort', '鼓励': 'encourage', '关爱': 'caring', '放松': 'relax', '问候': 'greeting',
-        '拥抱': 'hug', '很棒': 'youaregreat', '爱心': 'heart', '笑': 'laugh', '好的': 'ok',
-        '游戏': 'playwithyou', '运动': 'workout', '晚安': 'goodnight', '难过': 'feelingsad', 
-        '恐惧': 'terrified', '愤怒': 'angry', '疲惫': 'exhausted', '困惑': 'confused', 
-        '吃饭': 'eating', '再见': 'byebye'
-      }
-      const category = categoryMap[simpleTestMatch[1]]
-      if (category) {
-        setTimeout(() => {
-          addMessageWithEmoji({
-            type: 'bot',
-            content: `收到！发送${simpleTestMatch[1]}类表情包 emoji:${category}`,
-            sender: 'assistant'
-          })
-        }, 1000)
-        return
-      }
-    }
+    // 保留音乐测试指令用于开发调试
 
-    setTyping(true)
-    
-    // 【健康关键词检测】检测用户消息中是否包含健康相关关键词
-    const healthKeywords = detectHealthKeywords(content)
-    if (healthKeywords.length > 0 && !state.wearableDataRequest.hasBeenRequested) {
-      // 检测到健康关键词且尚未请求过穿戴数据，触发请求
-      requestWearableData(healthKeywords)
-    }
-    
-    // 【心理测试触发点】在发送用户消息后检查是否应该提供心理测试
-    // 这里会根据用户消息数量和其他条件判断是否触发测试邀请
-    const shouldOffer = shouldOfferPsychologicalTest()
-    
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: content,
-          sessionId: state.sessionId,
-          riskLevel: state.userRiskLevel,
-          userInfo: state.userInfo,
-          psychologicalTest: state.psychologicalTest
-        })
-      })
-
-      const data = await response.json()
+    // 【音乐卡片测试指令】
+    const musicTestMatch = content.match(/^测试音乐卡片[\s:]*(冥想|放松|钢琴|轻音乐)?$/i)
+    if (musicTestMatch) {
+      const musicType = musicTestMatch[1] ? (musicTestMatch[1] === '冥想' ? 'meditation' : 'relaxing') : 'meditation'
       
+      setTyping(true)
       setTimeout(() => {
         setTyping(false)
         addMessageWithEmoji({
           type: 'bot',
-          content: data.message,
-          sender: 'assistant',
-          metadata: data.metadata
-        })
-
-        if (data.riskLevel && data.riskLevel !== state.userRiskLevel) {
-          updateRiskLevel(data.riskLevel)
-        }
-
-        if (data.userInfo) {
-          updateUserInfo(data.userInfo)
-        }
+          content: '我为你推荐这首适合放松的音乐，希望能帮你缓解压力',
+          sender: 'assistant'
+        }, false) // 不自动添加表情包
         
-        // 【心理测试触发执行】在AI回答完成后，如果满足触发条件则提供心理测试邀请
-        if (shouldOffer) {
-          offerPsychologicalTest() // 执行测试邀请流程
-        }
-      }, 1500 + Math.random() * 1000)
+        // 延迟发送音乐卡片
+        setTimeout(() => {
+          sendMusicCard(musicType)
+        }, 800)
+      }, 1000)
+      return
+    }
 
-    } catch (error) {
-      setTyping(false)
-      console.error('发送消息失败:', error)
-      
+    // 【简化音乐测试指令】
+    const simpleMusicMatch = content.match(/^(音乐|冥想|放松音乐)$/i)
+    if (simpleMusicMatch) {
+      setTyping(true)
       setTimeout(() => {
+        setTyping(false)
         addMessageWithEmoji({
           type: 'bot',
-          content: '抱歉，我现在遇到了一些技术问题。如果你正处于紧急情况，请立即拨打危机热线：400-161-9995 emoji:caring',
+          content: `好的，我来为你推荐一首${simpleMusicMatch[1]}`,
           sender: 'assistant'
-        })
+        }, false)
         
-        // 【错误处理】即使API调用出错，也要检查是否提供心理测试
-        // 确保心理测试功能不会因为网络问题而失效
-        if (shouldOffer) {
-          offerPsychologicalTest() // 执行测试邀请流程
-        }
+        setTimeout(() => {
+          sendMusicCard('meditation')
+        }, 800)
       }, 1000)
+      return
     }
+
+    // 非Demo模式的简化处理
+    setTyping(true)
+    
+    setTimeout(() => {
+      setTyping(false)
+      
+      const response = generateAIResponse(content, state)
+      
+      addMessageWithEmoji({
+        type: 'bot',
+        content: response.content,
+        sender: 'assistant'
+      })
+      
+      updateRiskLevel(response.riskLevel)
+    }, Math.random() * 2000 + 1000)
   }
 
   /**
@@ -1356,7 +1563,11 @@ export function ChatProvider({ children }) {
     detectHealthKeywords,
     requestWearableData,
     submitWearableData,
-    closeWearableDataRequest
+    closeWearableDataRequest,
+    // 音乐卡片相关函数
+    sendMusicCard,
+    // Demo脚本相关函数
+    ...demoScript
   }
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
