@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { selectEmoji, getScenarioEmoji, createEmojiMessage, extractEmojiInstruction, getEmojiByInstruction } from '../utils/emojiConfig.js'
 import { useCharacter } from './CharacterContext'
 import { useDemoScript } from '../hooks/useDemoScript'
+import GlimmerApiService from '../services/glimmerApi'
 
 const ChatContext = createContext()
 
@@ -1197,7 +1198,7 @@ export function ChatProvider({ children }) {
                   sendMusicCard('meditation')
                   break
                 
-                case 'trigger_wearable_data':
+                case 'push_wearable_data':
                   // 触发穿戴数据请求
                   requestWearableData(['睡眠', '心率'])
                   break
@@ -1220,6 +1221,181 @@ export function ChatProvider({ children }) {
         })
       }
     }, totalDelay)
+  }
+
+  /**
+   * 处理 Glimmer 后端的 actions
+   * 根据后端返回的 action 字符串执行相应的前端操作
+   * @param {string} actionString - 后端返回的 action 字符串，如 "push_game_card,push_music_card"
+   * @param {Object} response - 完整的后端响应对象
+   */
+  const handleGlimmerActions = (actionString, response) => {
+    if (!actionString) return
+
+    const actions = GlimmerApiService.parseActions(actionString)
+    console.log('Processing Glimmer actions:', actions)
+
+    // 为每个动作设置延时，避免同时触发多个操作
+    actions.forEach((action, index) => {
+      setTimeout(() => {
+        switch (action) {
+          case 'push_game_card':
+            console.log('Executing action: push_game_card')
+            offerGameRecommendation()
+            break
+
+          case 'push_music_card': 
+            console.log('Executing action: push_music_card')
+            sendMusicCard('meditation')
+            break
+
+          case 'push_psychological_test':
+            console.log('Executing action: push_psychological_test')
+            offerPsychologicalTest()
+            break
+
+          case 'push_wearable_data':
+            console.log('Executing action: push_wearable_data')
+            // 从用户消息中检测健康关键词
+            const userMessage = state.messages.filter(msg => msg.type === 'user').slice(-1)[0]?.content || ''
+            const keywords = detectHealthKeywords(userMessage)
+            if (keywords.length > 0) {
+              requestWearableData(keywords)
+            } else {
+              requestWearableData(['健康监测'])
+            }
+            break
+
+          case 'start_psychological_test':
+            console.log('Executing action: start_psychological_test') 
+            startPsychologicalTest()
+            break
+
+          case 'emergency_call':
+            console.log('Executing action: emergency_call (high risk detected)')
+            // 显示紧急联系方式
+            addMessageWithEmoji({
+              type: 'bot',
+              content: '我注意到你现在的状况需要专业帮助，建议立即联系心理危机干预热线',
+              sender: 'assistant'
+            })
+            // 触发紧急联系卡片显示
+            setTimeout(() => {
+              // 通过自定义事件触发前端组件显示紧急联系卡片
+              window.dispatchEvent(new CustomEvent('showEmergencyContact', { 
+                detail: { type: 'crisis' } 
+              }))
+            }, 2000)
+            break
+
+          case 'professional_referral':
+            console.log('Executing action: professional_referral')
+            addMessageWithEmoji({
+              type: 'bot', 
+              content: '基于我们的对话，我建议你寻求专业心理咨询师的帮助',
+              sender: 'assistant'
+            })
+            break
+
+          default:
+            console.warn('Unknown Glimmer action:', action)
+        }
+      }, index * 1500) // 每个动作间隔1.5秒
+    })
+  }
+
+  /**
+   * 调用 Glimmer 后端API并处理响应
+   * @param {string} userMessage - 用户消息内容
+   * @returns {Promise<void>}
+   */
+  const callGlimmerApi = async (userMessage) => {
+    try {
+      console.log('Calling Glimmer API with message:', userMessage)
+      
+      // 生成用户ID（在实际应用中应该从用户认证系统获取）
+      const userId = `user_${Date.now()}`
+      
+      setTyping(true)
+      
+      const response = await GlimmerApiService.sendChatMessage({
+        user_id: userId,
+        message: userMessage,
+        session_id: state.sessionId
+      })
+
+      setTyping(false)
+
+      if (response.success) {
+        console.log('Glimmer API success:', response)
+        
+        // 更新会话ID
+        if (response.session_id && response.session_id !== state.sessionId) {
+          dispatch({ type: 'INIT_SESSION', payload: { sessionId: response.session_id } })
+        }
+
+        // 处理角色状态变化
+        const mappedCharacterState = GlimmerApiService.mapCharacterState(response.character_state)
+        if (mappedCharacterState) {
+          changeState(mappedCharacterState)
+        }
+
+        // 发送AI回复消息（带表情包）
+        if (response.content) {
+          // 如果后端返回了emoji，添加表情包指令
+          let messageContent = response.content
+          if (response.emoji) {
+            messageContent += ` emoji:${response.emoji}`
+          }
+          
+          addMessageWithEmoji({
+            type: 'bot',
+            content: messageContent,
+            sender: 'assistant',
+            metadata: {
+              character_state: response.character_state,
+              risk_level: response.risk_level,
+              glimmer_response: true
+            }
+          })
+        }
+
+        // 更新风险等级
+        const mappedRiskLevel = GlimmerApiService.mapRiskLevel(response.risk_level)
+        updateRiskLevel(mappedRiskLevel)
+
+        // 处理后端返回的actions
+        if (response.action) {
+          // 延迟处理actions，让AI消息先显示
+          setTimeout(() => {
+            handleGlimmerActions(response.action, response)
+          }, 1000)
+        }
+
+      } else {
+        console.error('Glimmer API error:', response.error)
+        setTyping(false)
+        
+        // 显示错误消息给用户
+        addMessage({
+          type: 'bot',
+          content: response.network_error 
+            ? '抱歉，我现在无法连接到服务。请确保后端服务正在运行。' 
+            : `抱歉，处理您的消息时出现了问题：${response.error}`,
+          sender: 'assistant'
+        })
+      }
+
+    } catch (error) {
+      console.error('Unexpected error calling Glimmer API:', error)
+      setTyping(false)
+      
+      addMessage({
+        type: 'bot',
+        content: '抱歉，系统出现了意外错误，请稍后重试。',
+        sender: 'assistant'
+      })
+    }
   }
 
   const exportUserData = () => {
@@ -1497,22 +1673,8 @@ export function ChatProvider({ children }) {
       return
     }
 
-    // 非Demo模式的简化处理
-    setTyping(true)
-    
-    setTimeout(() => {
-      setTyping(false)
-      
-      const response = generateAIResponse(content, state)
-      
-      addMessageWithEmoji({
-        type: 'bot',
-        content: response.content,
-        sender: 'assistant'
-      })
-      
-      updateRiskLevel(response.riskLevel)
-    }, Math.random() * 2000 + 1000)
+    // 非Demo模式：调用真实的 Glimmer 后端API
+    await callGlimmerApi(content)
   }
 
   /**

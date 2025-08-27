@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Home, MoreVertical, Heart, Phone, GamepadIcon, ClipboardList, Image } from 'lucide-react'
+import { Send, Home, Heart, Phone, GamepadIcon, ClipboardList, Image, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChat } from '../contexts/ChatContext'
 import { useBackground } from '../contexts/BackgroundContext'
@@ -8,17 +8,19 @@ import MessageBubble from './MessageBubble'
 import EmojiMessage from './EmojiMessage'
 import MusicCard from './MusicCard'
 import TypingIndicator from './TypingIndicator'
-import ServicePanel from './ServicePanel'
 import QuickReplyOptions from './QuickReplyOptions'
 import PrivacyNotice from './PrivacyNotice'
 import WearableDataInput from './WearableDataInput'
 import BackgroundSelector from './BackgroundSelector'
 import CharacterDisplay from './CharacterDisplay'
+import LeftSidebar from './LeftSidebar'
+import EmergencyContactCard from './EmergencyContactCard'
 
 const ChatInterface = () => {
   const [inputMessage, setInputMessage] = useState('')
-  const [showServices, setShowServices] = useState(false)
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false)
+  const [showEmergencyContact, setShowEmergencyContact] = useState(false)
+  const [emergencyContactType, setEmergencyContactType] = useState('crisis')
   const messagesEndRef = useRef(null)
   const navigate = useNavigate()
   const { currentBackground } = useBackground()
@@ -56,12 +58,26 @@ const ChatInterface = () => {
     scrollToBottom()
   }, [messages, isTyping])
 
+  // 监听来自 ChatContext 的紧急联系事件
+  useEffect(() => {
+    const handleShowEmergencyContact = (event) => {
+      setEmergencyContactType(event.detail.type)
+      setShowEmergencyContact(true)
+    }
+
+    window.addEventListener('showEmergencyContact', handleShowEmergencyContact)
+    
+    return () => {
+      window.removeEventListener('showEmergencyContact', handleShowEmergencyContact)
+    }
+  }, [])
+
   // 穿戴数据请求时自动调整布局
   useEffect(() => {
     if (wearableDataRequest.isRequested) {
-      // 当穿戴数据请求时，增加右侧栏宽度，压缩聊天区域
-      setChatWidth(30) // 聊天区域压缩到30%
-      setSidebarWidth(25) // 右侧栏扩展到25%
+      // 当穿戴数据请求时，增加右侧栏宽度，但保持聊天区域最小宽度
+      setChatWidth(30) // 聊天区域保持30%，确保有足够空间
+      setSidebarWidth(25) // 右侧栏扩展到25%，给穿戴数据表单更多空间
     } else {
       // 恢复默认布局
       setChatWidth(40)
@@ -81,20 +97,21 @@ const ChatInterface = () => {
     const containerWidth = window.innerWidth
     const mouseX = e.clientX
     const characterWidth = 40 // 人物区域固定40%
-    const leftOffset = (containerWidth * (5 + characterWidth)) / 100 // 5%预留 + 40%人物
+    const leftSidebarWidth = 5 // 左侧栏估计5%宽度 (16px图标栏 + 可能的展开面板)
+    const leftOffset = (containerWidth * (leftSidebarWidth + characterWidth)) / 100 // 左侧栏 + 人物区域
     
     // 计算新的聊天区域宽度百分比
     const newChatWidthPx = mouseX - leftOffset
     const newChatWidthPercent = (newChatWidthPx / containerWidth) * 100
     
     // 设置最小和最大宽度限制
-    const minChatWidth = 20 // 聊天区域最小20%
+    const minChatWidth = 25 // 聊天区域最小25%，确保对话框有足够空间
     const maxChatWidth = 60 // 聊天区域最大60%
     const minSidebarWidth = 10 // 右侧栏最小10%
     const maxSidebarWidth = 35 // 右侧栏最大35%
     
     const clampedChatWidth = Math.max(minChatWidth, Math.min(maxChatWidth, newChatWidthPercent))
-    const newSidebarWidth = 100 - 5 - 40 - clampedChatWidth // 总宽度100% - 预留5% - 人物40% - 聊天区域
+    const newSidebarWidth = 100 - leftSidebarWidth - characterWidth - clampedChatWidth // 总宽度100% - 左侧栏 - 人物40% - 聊天区域
     
     if (newSidebarWidth >= minSidebarWidth && newSidebarWidth <= maxSidebarWidth) {
       setChatWidth(clampedChatWidth)
@@ -182,7 +199,7 @@ const ChatInterface = () => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Home className="w-5 h-5 text-gray-600" />
+            <Home className="w-5 h-5 text-gray-700" />
           </motion.button>
           <div>
             <h1 className="font-semibold text-gray-800">心理健康助手</h1>
@@ -234,36 +251,89 @@ const ChatInterface = () => {
             whileTap={{ scale: 0.95 }}
             title="更换背景"
           >
-            <Image className="w-5 h-5 text-gray-600 group-hover:text-primary-600 transition-colors" />
-          </motion.button>
-          <motion.button
-            onClick={() => setShowServices(!showServices)}
-            className="p-2 hover:bg-white/50 rounded-full transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <MoreVertical className="w-5 h-5 text-gray-600" />
+            <Image className="w-5 h-5 text-gray-700 group-hover:text-primary-600 transition-colors" />
           </motion.button>
         </div>
       </motion.header>
 
       {/* 聊天消息区域 */}
       <div className="flex-1 overflow-hidden flex">
-        {/* 左侧预留空间 - 5% */}
-        <div className="hidden lg:flex w-[5%] p-2">
-          {/* 预留给未来内容的空组件 */}
-          <div className="w-full h-full flex items-center justify-center">
-            {/* 可以放置导航菜单或其他功能 */}
-          </div>
+        {/* 左侧栏 - VSCode风格 */}
+        <div className="hidden lg:flex">
+          <LeftSidebar />
         </div>
 
         {/* 人物区域 - 40% */}
-        <div className="hidden lg:flex w-[40%] p-6">
+        <div className="hidden lg:flex w-[40%] p-6 flex-col">
+          {/* 高风险警告气泡 - 显示在人物上方 */}
+          <AnimatePresence>
+            {(userRiskLevel === 'high' || userRiskLevel === 'critical') && (
+              <motion.div
+                className="mb-4 flex justify-center"
+                initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 25,
+                  duration: 0.5
+                }}
+              >
+                {/* 气泡容器 */}
+                <div className="relative max-w-xs">
+                  {/* 主气泡 */}
+                  <div className="relative bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-300/70 rounded-2xl shadow-xl overflow-hidden">
+                    {/* 内容区域 */}
+                    <div className="p-4 space-y-3">
+                      {/* 警告图标和文字 */}
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mt-0.5">
+                          <AlertTriangle size={16} className="text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-red-800 leading-tight">
+                            我很关心你的安全
+                          </p>
+                          <p className="text-xs text-red-700 mt-1 leading-tight">
+                            如果你现在处于危险中，请立即寻求帮助
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 操作按钮 */}
+                      <div className="flex justify-center">
+                        <motion.button 
+                          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg transition-all duration-200"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setEmergencyContactType('crisis')
+                            setShowEmergencyContact(true)
+                          }}
+                        >
+                          获得帮助
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 气泡尖角 */}
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                    <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-red-300/70"></div>
+                    <div className="absolute -top-0.5 left-0.5 w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[11px] border-t-red-50"></div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* 人物显示组件 */}
           <CharacterDisplay />
         </div>
 
         {/* 中央对话区域 - 动态宽度 */}
-        <div className="flex-1 flex flex-col" style={{ width: `${chatWidth}%` }}>
+        <div className="flex-1 flex flex-col" style={{ width: `${chatWidth}%`, minWidth: '320px' }}>
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
             {/* 隐私保密提示 - 位于消息流顶部 */}
             <PrivacyNotice />
@@ -293,8 +363,8 @@ const ChatInterface = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Demo提示面板 */}
-          {isDemoMode && (
+          {/* Demo提示面板 - 录制时隐藏 */}
+          {false && isDemoMode && (
             <motion.div 
               className="bg-blue-500/10 border border-blue-500/20 backdrop-blur-sm rounded-lg p-3 mx-4 mb-2"
               initial={{ opacity: 0, y: 20 }}
@@ -377,23 +447,6 @@ const ChatInterface = () => {
                 </motion.button>
               </div>
             </div>
-            
-            <div className="flex items-center justify-center mt-3 space-x-4">
-              <motion.button
-                className="flex items-center space-x-1 px-3 py-1 text-xs text-gray-500 hover:text-primary-600 transition-colors"
-                whileHover={{ scale: 1.05 }}
-              >
-                <Heart className="w-3 h-3" />
-                <span>情感支持</span>
-              </motion.button>
-              <motion.button
-                className="flex items-center space-x-1 px-3 py-1 text-xs text-gray-500 hover:text-primary-600 transition-colors"
-                whileHover={{ scale: 1.05 }}
-              >
-                <Phone className="w-3 h-3" />
-                <span>紧急热线</span>
-              </motion.button>
-            </div>
           </motion.div>
         </div>
         
@@ -401,12 +454,15 @@ const ChatInterface = () => {
         <div 
           className={`hidden lg:flex w-1 bg-gray-300/50 hover:bg-gray-400/70 cursor-col-resize transition-colors ${
             isDragging ? 'bg-blue-400/70' : ''
-          }`}
+          } ${chatWidth <= 25 ? 'bg-orange-400/70' : ''}`}
           onMouseDown={handleMouseDown}
           ref={dragRef}
+          title={chatWidth <= 25 ? '聊天区域已达最小宽度' : '拖拽调整布局'}
         >
           <div className="w-full h-full flex items-center justify-center">
-            <div className="w-0.5 h-8 bg-gray-400 rounded-full opacity-60"></div>
+            <div className={`w-0.5 h-8 rounded-full opacity-60 transition-colors ${
+              chatWidth <= 25 ? 'bg-orange-500' : 'bg-gray-400'
+            }`}></div>
           </div>
         </div>
         
@@ -432,8 +488,8 @@ const ChatInterface = () => {
                   <Heart className="w-10 h-10 text-primary-500" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-gray-700">安全陪伴</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <h3 className="text-lg font-semibold text-gray-800">匿名树洞</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
                     我们在这里倾听<br />
                     你的每一个感受
                   </p>
@@ -444,60 +500,45 @@ const ChatInterface = () => {
               <div className="border-t border-gray-300/50 mx-8"></div>
 
               {/* 24/7 支持 */}
-              <div className="text-center space-y-4 opacity-70">
+              <motion.div 
+                className="text-center space-y-4 opacity-70 hover:opacity-100 cursor-pointer transition-all duration-200 p-4 rounded-lg hover:bg-white/20"
+                onClick={() => window.open('tel:400-161-9995')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="拨打24小时心理危机干预热线"
+              >
                 <div className="w-20 h-20 mx-auto bg-gradient-to-br from-warm-100 to-primary-100 rounded-full flex items-center justify-center shadow-md">
                   <Phone className="w-10 h-10 text-warm-500" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-gray-700">24/7 支持</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <h3 className="text-lg font-semibold text-gray-800">24/7 支持</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
                     紧急时刻<br />
                     我们随时为你提供帮助
                   </p>
+                  <div className="mt-3">
+                    <span className="text-xs text-blue-600 font-medium">点击拨打热线</span>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           )}
         </div>
       </div>
 
-      {/* 服务面板 */}
-      <AnimatePresence>
-        {showServices && (
-          <ServicePanel onClose={() => setShowServices(false)} />
-        )}
-      </AnimatePresence>
 
-      {/* 高风险警告 */}
-      <AnimatePresence>
-        {(userRiskLevel === 'high' || userRiskLevel === 'critical') && (
-          <motion.div
-            className="fixed bottom-20 left-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50"
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold">我很关心你的安全</p>
-                <p className="text-sm opacity-90">如果你现在处于危险中，请立即寻求帮助</p>
-              </div>
-              <motion.button 
-                className="bg-white text-red-500 px-4 py-2 rounded-full text-sm font-semibold"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                获得帮助
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 背景选择器 */}
       <BackgroundSelector 
         isOpen={showBackgroundSelector} 
         onClose={() => setShowBackgroundSelector(false)} 
+      />
+
+      {/* 紧急联系卡片 */}
+      <EmergencyContactCard
+        visible={showEmergencyContact}
+        emergencyType={emergencyContactType}
+        onClose={() => setShowEmergencyContact(false)}
       />
       </div>
     </div>

@@ -168,7 +168,7 @@
             "character_state": "general",
             "content": "可以点开侧边栏，把咱们每天的数据输入进去，你可以试试看，有操作不便吗？",
             "emoji": null,
-            "actions": ["trigger_wearable_data"]
+            "actions": ["push_wearable_data"]
           }
         ]
       },

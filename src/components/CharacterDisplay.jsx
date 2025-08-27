@@ -62,7 +62,7 @@ const CharacterDisplay = () => {
                   <img
                     src={stateInfo.image}
                     alt={stateInfo.name}
-                    className={`w-auto h-[85%] max-w-full object-contain transition-opacity duration-500 ${
+                    className={`w-auto h-[100%] max-w-full object-contain transition-opacity duration-500 ${
                       imageLoaded ? 'opacity-100' : 'opacity-0'
                     }`}
                     onLoad={handleImageLoad}

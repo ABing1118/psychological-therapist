@@ -34,6 +34,46 @@ const MusicCard = ({ message }) => {
       platformName: '网易云音乐',
       url: 'https://music.163.com/#/song?id=149285'
     },
+    'Inspiring': {
+      title: 'Inspiring',
+      artist: 'Capo Productions',
+      duration: '3:39',
+      cover: 'https://p1.music.126.net/x-LVbj4tX6oEDH3qkqJP2g==/663005511556827.jpg?param=130y130',
+      platform: 'netease',
+      platformColor: '#C20C0C',
+      platformName: '网易云音乐',
+      url: 'https://music.163.com/#/song?id=16846091'
+    },
+    'Forward Steps': {
+      title: 'Forward Steps',
+      artist: 'Avens',
+      duration: '4:37',
+      cover: 'https://p2.music.126.net/UfaYACd0HNYhjsvtFINeOg==/6646547790604307.jpg?param=130y130',
+      platform: 'netease',
+      platformColor: '#C20C0C',
+      platformName: '网易云音乐',
+      url: 'https://music.163.com/#/song?id=28103392'
+    },
+    'Summer Fantasy~': {
+      title: 'Summer Fantasy~',
+      artist: '傅许',
+      duration: '5:42',
+      cover: 'https://p1.music.126.net/Iw4RX41INrRGqQV9UUhgrA==/109951162922687626.jpg?param=130y130',
+      platform: 'netease',
+      platformColor: '#C20C0C',
+      platformName: '网易云音乐',
+      url: 'https://music.163.com/#/song?id=476625725'
+    },
+    'Gypsophila': {
+      title: 'Gypsophila',
+      artist: 'MoreanP',
+      duration: '4:07',
+      cover: 'https://p2.music.126.net/I6L-jkmBdicjAGU64ZsfRw==/109951163057015842.jpg?param=130y130',
+      platform: 'netease',
+      platformColor: '#C20C0C',
+      platformName: '网易云音乐',
+      url: 'https://music.163.com/#/song?id=517346741'
+    }
   }
 
   // 根据消息内容选择音乐
