@@ -56,7 +56,7 @@ const CharacterDisplay = () => {
             }}
           >
             {/* 人物图片 - 无背景框，直接显示，保持底部对齐 */}
-            <div className="relative w-full h-full flex items-end justify-center px-4 pb-4 overflow-hidden">
+            <div className="relative w-full h-full flex items-end justify-center px-4 pb-4 pt-6 overflow-hidden">
               {!imageError ? (
                 <>
                   <img

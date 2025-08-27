@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Home, Heart, Phone, GamepadIcon, ClipboardList, Image, AlertTriangle } from 'lucide-react'
+import { Send, Home, Heart, Phone, GamepadIcon, ClipboardList, Image, AlertTriangle, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChat } from '../contexts/ChatContext'
 import { useBackground } from '../contexts/BackgroundContext'
@@ -21,6 +21,7 @@ const ChatInterface = () => {
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false)
   const [showEmergencyContact, setShowEmergencyContact] = useState(false)
   const [emergencyContactType, setEmergencyContactType] = useState('crisis')
+  const [showWarningBubble, setShowWarningBubble] = useState(true)
   const messagesEndRef = useRef(null)
   const navigate = useNavigate()
   const { currentBackground } = useBackground()
@@ -267,7 +268,7 @@ const ChatInterface = () => {
         <div className="hidden lg:flex w-[40%] p-6 flex-col">
           {/* 高风险警告气泡 - 显示在人物上方 */}
           <AnimatePresence>
-            {(userRiskLevel === 'high' || userRiskLevel === 'critical') && (
+            {(userRiskLevel === 'high' || userRiskLevel === 'critical') && showWarningBubble && (
               <motion.div
                 className="mb-4 flex justify-center"
                 initial={{ opacity: 0, scale: 0.8, y: -20 }}
@@ -284,6 +285,14 @@ const ChatInterface = () => {
                 <div className="relative max-w-xs">
                   {/* 主气泡 */}
                   <div className="relative bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-300/70 rounded-2xl shadow-xl overflow-hidden">
+                    {/* 关闭按钮 */}
+                    <button
+                      onClick={() => setShowWarningBubble(false)}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white transition-all duration-200 shadow-sm z-10 group"
+                    >
+                      <X size={12} className="text-red-600 group-hover:text-red-700" />
+                    </button>
+                    
                     {/* 内容区域 */}
                     <div className="p-4 space-y-3">
                       {/* 警告图标和文字 */}
@@ -291,7 +300,7 @@ const ChatInterface = () => {
                         <div className="flex-shrink-0 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mt-0.5">
                           <AlertTriangle size={16} className="text-white" />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 pr-4">
                           <p className="text-sm font-bold text-red-800 leading-tight">
                             我很关心你的安全
                           </p>
