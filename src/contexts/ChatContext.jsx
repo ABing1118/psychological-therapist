@@ -1072,9 +1072,18 @@ export function ChatProvider({ children }) {
     // 发送一条确认消息
     addMessageWithEmoji({
       type: 'bot',
-      content: '谢谢你提供的健康数据！这些信息将帮助我更好地了解你的身体状况，为你提供更准确的建议。 emoji:caring',
+      content: '嗯嗯，收到你的数据啦，专业的分析是需要一定周期才能得出结论，你可以每天来更新数据哦',
       sender: 'assistant'
     })
+    
+    // 延迟发送第二条询问消息
+    setTimeout(() => {
+      addMessageWithEmoji({
+        type: 'bot',
+        content: '看来你很关心自己的健康嘛，那你最近有运动嘛？',
+        sender: 'assistant'
+      })
+    }, 1000) // 2秒后发送第二条消息
     
     // 在Demo模式下，自动推进到下一步
     if (demoScript.isDemoMode) {
@@ -1085,7 +1094,7 @@ export function ChatProvider({ children }) {
         if (expectedInput) {
           demoScript.handleUserInput(expectedInput, executeDemoAction)
         }
-      }, 2000) // 等待确认消息显示后再推进
+      }, 5000) // 等待两条消息都显示完后再推进，增加到5秒
     }
   }
 
