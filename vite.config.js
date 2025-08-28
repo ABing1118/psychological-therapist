@@ -1,13 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { getCurrentConfig, buildUrl } from './config/environments.js'
+
+// 获取当前环境配置
+const config = getCurrentConfig()
 
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: config.frontend.port,
+    host: config.frontend.host,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: buildUrl('backend'),
         changeOrigin: true
       }
     }
