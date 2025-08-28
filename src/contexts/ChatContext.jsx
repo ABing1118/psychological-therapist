@@ -1349,9 +1349,42 @@ export function ChatProvider({ children }) {
           changeState(mappedCharacterState)
         }
 
-        // 发送AI回复消息（带表情包）
-        if (response.content) {
-          // 如果后端返回了emoji，添加表情包指令
+        // 处理AI回复消息 - 支持多条消息
+        if (response.messages && response.messages.length > 0) {
+          // 新格式：多条消息
+          response.messages.forEach((message, index) => {
+            setTimeout(() => {
+              // 显示打字状态
+              setTyping(true)
+              
+              setTimeout(() => {
+                setTyping(false)
+                
+                // 构造消息内容
+                let messageContent = message.content
+                
+                // 只在第一条消息添加表情包指令
+                if (index === 0 && response.emoji) {
+                  messageContent += ` emoji:${response.emoji}`
+                }
+                
+                addMessageWithEmoji({
+                  type: 'bot',
+                  content: messageContent,
+                  sender: 'assistant',
+                  metadata: {
+                    character_state: response.character_state,
+                    risk_level: response.risk_level,
+                    glimmer_response: true,
+                    messageIndex: index,
+                    totalMessages: response.messages.length
+                  }
+                })
+              }, 800) // 打字状态持续时间
+            }, message.delay || 0) // 使用后端定义的延迟时间
+          })
+        } else if (response.content) {
+          // 兼容旧格式：单条消息
           let messageContent = response.content
           if (response.emoji) {
             messageContent += ` emoji:${response.emoji}`
@@ -1375,10 +1408,14 @@ export function ChatProvider({ children }) {
 
         // 处理后端返回的actions
         if (response.action) {
-          // 延迟处理actions，让AI消息先显示
+          // 计算最后一条消息的延迟时间，确保所有消息发送完成后再处理actions
+          const lastMessageDelay = response.messages && response.messages.length > 0
+            ? Math.max(...response.messages.map(msg => msg.delay || 0)) + 1500 // 加上打字和发送时间
+            : 1000
+            
           setTimeout(() => {
             handleGlimmerActions(response.action, response)
-          }, 1000)
+          }, lastMessageDelay)
         }
 
       } else {

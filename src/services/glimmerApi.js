@@ -74,6 +74,7 @@ export class GlimmerApiService {
         action: data.action,
         emoji: data.emoji,
         content: data.content,
+        messages: data.messages || [{ content: data.content, delay: 0 }], // 新增：支持多条消息
         risk_level: data.risk_level,
         raw_response: data
       };
