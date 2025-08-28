@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * 开发环境启动脚本
+ * 测试环境启动脚本
  * 
- * 这个脚本用于同时启动前端和后端服务
- * 包含了基本的环境检查和服务启动逻辑
+ * 这个脚本用于启动测试环境服务
+ * 别人测试时使用，不会受到开发代码改动的影响
  */
 
 import { spawn } from 'child_process'
@@ -16,11 +16,11 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-console.log('🚀 启动心理治疗AI应用开发环境...\n')
+console.log('🚀 启动心理治疗AI应用测试环境...\n')
 
 // 检查环境
 function checkEnvironment() {
-  console.log('🔍 检查开发环境...')
+  console.log('🔍 检查测试环境...')
   
   // 检查 Node.js 版本
   const nodeVersion = process.version
@@ -55,28 +55,28 @@ function checkEnvironment() {
 
 // 启动服务
 function startServices() {
-  console.log('\n🌟 启动开发服务...')
+  console.log('\n🌟 启动测试环境服务...')
   
   // 启动后端服务器
-  console.log('🔧 启动后端API服务器 (端口: 5000)...')
+  console.log('🔧 启动后端API服务器 (端口: 5001)...')
   const backend = spawn('node', ['server/index.js'], {
     stdio: ['inherit', 'inherit', 'inherit'],
     env: {
       ...process.env,
-      NODE_ENV: 'development',
-      PORT: '5000',
-      HOST: 'localhost'
+      NODE_ENV: 'testing',
+      PORT: '5001',
+      HOST: '0.0.0.0'
     }
   })
   
   // 等待后端启动后再启动前端
   setTimeout(() => {
-    console.log('⚛️  启动前端开发服务器 (端口: 3000)...')
+    console.log('⚛️  启动前端测试服务器 (端口: 3001)...')
     const frontend = spawn('npm', ['run', 'dev'], {
       stdio: ['inherit', 'inherit', 'inherit'],
       env: {
         ...process.env,
-        NODE_ENV: 'development'
+        NODE_ENV: 'testing'
       }
     })
     
@@ -92,36 +92,39 @@ function startServices() {
   
   // 优雅关闭
   process.on('SIGINT', () => {
-    console.log('\n📴 正在关闭开发服务器...')
+    console.log('\n📴 正在关闭测试服务器...')
     backend.kill()
     process.exit(0)
   })
   
-  console.log('\n📍 服务地址:')
-  console.log('   前端应用: http://localhost:3000')
-  console.log('   后端API:  http://localhost:5000')
-  console.log('   管理面板: http://localhost:3000/admin')
+  console.log('\n📍 测试环境服务地址:')
+  console.log('   前端应用: http://localhost:3001')
+  console.log('   前端应用: http://172.26.72.31:3001')
+  console.log('   后端API:  http://localhost:5001')
+  console.log('   后端API:  http://172.26.72.31:5001')
+  console.log('   管理面板: http://localhost:3001/admin')
+  console.log('   管理面板: http://172.26.72.31:3001/admin')
   console.log('\n💡 提示: 按 Ctrl+C 停止服务')
   console.log('─'.repeat(50))
 }
 
-// 显示演示信息
-function showDemoInfo() {
-  console.log('\n🎮 演示功能:')
-  console.log('1. 访问首页体验基本对话功能')
-  console.log('2. 尝试不同的情感表达，观察AI响应')
-  console.log('3. 访问 /admin 查看管理面板')
-  console.log('4. 测试不同风险等级的对话场景\n')
+// 显示测试信息
+function showTestInfo() {
+  console.log('\n🧪 测试环境说明:')
+  console.log('1. 这是测试环境，不会受到开发代码改动的影响')
+  console.log('2. 前端运行在3001端口，后端运行在5001端口')
+  console.log('3. 支持网络访问，其他设备可通过IP地址访问')
+  console.log('4. 适合进行功能测试和演示\n')
   
-  console.log('🔧 开发工具:')
-  console.log('- React DevTools: 浏览器扩展')
-  console.log('- API测试: http://localhost:5000/api/health')
+  console.log('🔧 测试工具:')
+  console.log('- 前端测试: http://172.26.72.31:3001')
+  console.log('- API测试: http://172.26.72.31:5001/api/health')
   console.log('- 日志监控: 查看终端输出\n')
 }
 
 // 主函数
 function main() {
-  showDemoInfo()
+  showTestInfo()
   checkEnvironment()
 }
 

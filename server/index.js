@@ -13,6 +13,7 @@ const riskAssessment = require('./services/riskAssessment')
 
 const app = express()
 const PORT = process.env.PORT || 5001
+const HOST = process.env.HOST || '0.0.0.0'
 
 // 中间件配置
 app.use(cors())
@@ -168,9 +169,12 @@ async function startServer() {
     await connectRedis()
     
     // 启动服务器
-    app.listen(PORT, () => {
+    app.listen(PORT, HOST, () => {
       console.log(`🚀 服务器启动成功`)
       console.log(`📍 本地地址: http://localhost:${PORT}`)
+      if (HOST === '0.0.0.0') {
+        console.log(`🌐 网络地址: http://172.26.72.31:${PORT}`)
+      }
       console.log(`🕐 启动时间: ${new Date().toLocaleString('zh-CN')}`)
       console.log('─'.repeat(50))
     })

@@ -3,8 +3,10 @@
 
 import axios from 'axios';
 
-// 后端API配置
-const GLIMMER_API_BASE = 'http://localhost:8000';
+// 后端API配置 - 根据环境动态设置
+import { buildUrl } from '../../config/environments.js';
+
+const GLIMMER_API_BASE = buildUrl('python');
 
 // 创建axios实例
 const glimmerApi = axios.create({
